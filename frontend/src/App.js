@@ -17,6 +17,9 @@ import Footer from './components/Footer';
 import AdminPanel from './components/AdminPanel';
 import ErrorBoundary from './components/ErrorBoundary';
 import NotificationBar from './components/NotificationBar';
+import SEOHead from './components/SEOHead';
+import CookieConsent from './components/CookieConsent';
+import BackToTop from './components/BackToTop';
 
 // Styles
 import './App.css';
@@ -26,6 +29,7 @@ const HomePage = () => {
 
   return (
     <ErrorBoundary>
+      <SEOHead />
       <div className="min-h-screen bg-white">
         <NotificationBar />
         <Header />
@@ -37,15 +41,15 @@ const HomePage = () => {
           title="Content Management"
         >
           <Settings className="w-5 h-5" />
-          <span className="ml-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 text-sm font-medium">
-            Admin
+          <span className="ml-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 text-sm font-medium whitespace-nowrap">
+            Admin Panel
           </span>
         </button>
 
         {/* Mobile Admin Button */}
         <button
           onClick={() => setIsAdminOpen(true)}
-          className="fixed bottom-4 right-4 z-40 p-3 bg-gradient-to-r from-purple-500 to-blue-500 text-white rounded-full shadow-lg hover:from-purple-600 hover:to-blue-600 transform hover:scale-110 transition-all duration-300 md:hidden"
+          className="fixed bottom-20 right-4 z-40 p-3 bg-gradient-to-r from-purple-500 to-blue-500 text-white rounded-full shadow-lg hover:from-purple-600 hover:to-blue-600 transform hover:scale-110 transition-all duration-300 md:hidden"
           title="Content Management"
         >
           <Settings className="w-5 h-5" />
@@ -64,6 +68,10 @@ const HomePage = () => {
         </main>
 
         <Footer />
+
+        {/* Additional Components */}
+        <BackToTop />
+        <CookieConsent />
 
         {/* Admin Panel */}
         <AdminPanel 

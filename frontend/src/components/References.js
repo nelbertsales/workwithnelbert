@@ -1,5 +1,5 @@
 import React from 'react';
-import { Mail, User, Building, Star, Quote } from 'lucide-react';
+import { Mail, User, Building, Star, Quote, ExternalLink } from 'lucide-react';
 import { mockData } from '../mock/mockData';
 
 const References = () => {
@@ -11,8 +11,9 @@ const References = () => {
       email: "mk@fhmoms.com",
       phone: "+63 XXX-XXX-XXXX", // Placeholder for privacy
       relationship: "Training Supervisor & Mentor",
-      testimonial: "Nelbert demonstrated exceptional dedication and skill during our comprehensive VA training program. His attention to detail and eagerness to learn made him one of our standout apprentices.",
-      image: "https://images.unsplash.com/photo-1494790108755-2616b612b786?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=150&q=80"
+      testimonial: "Nelbert demonstrated exceptional dedication and skill during our comprehensive VA training program. His attention to detail and eagerness to learn made him one of our standout apprentices. I highly recommend him for any virtual assistant role.",
+      image: "https://images.unsplash.com/photo-1494790108755-2616b612b786?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=150&q=80",
+      linkedIn: "https://www.linkedin.com/company/fhmoms"
     }
   ];
 
@@ -56,10 +57,21 @@ const References = () => {
                         <p className="text-purple-600 font-semibold mb-1">
                           {ref.title}
                         </p>
-                        <div className="flex items-center text-gray-600 text-sm">
+                        <div className="flex items-center text-gray-600 text-sm mb-2">
                           <Building className="w-4 h-4 mr-1" />
                           <span>{ref.company}</span>
                         </div>
+                        {ref.linkedIn && (
+                          <a 
+                            href={ref.linkedIn}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center text-blue-600 hover:text-blue-700 text-sm transition-colors"
+                          >
+                            <ExternalLink className="w-3 h-3 mr-1" />
+                            Company LinkedIn
+                          </a>
+                        )}
                       </div>
                     </div>
 
@@ -81,8 +93,8 @@ const References = () => {
                       </div>
 
                       {/* Testimonial */}
-                      <div className="bg-gradient-to-r from-purple-50 to-blue-50 p-4 rounded-lg border border-purple-100">
-                        <Quote className="w-6 h-6 text-purple-400 mb-2" />
+                      <div className="bg-gradient-to-r from-purple-50 to-blue-50 p-6 rounded-lg border border-purple-100">
+                        <Quote className="w-6 h-6 text-purple-400 mb-3" />
                         <p className="text-gray-700 italic leading-relaxed">
                           "{ref.testimonial}"
                         </p>
