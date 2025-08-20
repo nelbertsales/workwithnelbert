@@ -6,14 +6,14 @@ import os
 import logging
 from pathlib import Path
 
-# Import routes
+ROOT_DIR = Path(__file__).parent
+load_dotenv(ROOT_DIR / '.env')
+
+# Import routes after loading environment variables
 from routes import profile, contact, blog, analytics
 
 # Import database initialization
 from database import init_database, close_database
-
-ROOT_DIR = Path(__file__).parent
-load_dotenv(ROOT_DIR / '.env')
 
 # Create the main app
 app = FastAPI(title="Nelbert Tomicos Portfolio API", version="1.0.0")
