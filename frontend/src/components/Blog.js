@@ -1,19 +1,44 @@
-import React, { useState } from 'react';
-import { Calendar, Clock, Tag, ChevronRight, Search, Filter } from 'lucide-react';
-import { mockData } from '../mock/mockData';
+import React, { useState, useEffect } from 'react';
+import { Calendar, Clock, Tag, ChevronRight, Search, Filter, Loader } from 'lucide-react';
+import { blogAPI, analyticsAPI } from '../services/api';
 
 const Blog = () => {
+  const [posts, setPosts] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
+  const [error, setError] = useState(null);
   
   const categories = ['all', 'Productivity', 'Business', 'Social Media', 'Tips'];
   
-  const filteredPosts = mockData.blogPosts.filter(post => {
-    const matchesCategory = selectedCategory === 'all' || post.category === selectedCategory;
-    const matchesSearch = post.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         post.excerpt.toLowerCase().includes(searchTerm.toLowerCase());
-    return matchesCategory && matchesSearch;
-  });
+  useEffect(() => {
+    fetchBlogPosts();
+  }, [selectedCategory, searchTerm]);
+
+  const fetchBlogPosts = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const params = {};
+      if (selectedCategory !== 'all') {
+        params.category = selectedCategory;
+      }
+      if (searchTerm) {
+        params.search = searchTerm;
+      }
+      
+      const response = await blogAPI.getAll(params);
+      if (response.success) {
+        setPosts(response.data.posts || []);
+      }
+    } catch (err) {
+      setError(err.message);
+      console.error('Error fetching blog posts:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const formatDate = (dateString) => {
     const date = new Date(dateString);
@@ -23,6 +48,30 @@ const Blog = () => {
       day: 'numeric' 
     });
   };
+
+  const handleReadMore = async (post) => {
+    try {
+      // Track blog view
+      await analyticsAPI.trackView('blog');
+      // In a full implementation, this would navigate to the full post
+      console.log('Reading post:', post.slug);
+    } catch (err) {
+      console.error('Error tracking blog view:', err);
+    }
+  };
+
+  if (loading) {
+    return (
+      <section id="blog" className="py-20 bg-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center">
+            <Loader className="w-8 h-8 animate-spin text-purple-600 mx-auto mb-4" />
+            <p className="text-gray-600">Loading blog posts...</p>
+          </div>
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section id="blog" className="py-20 bg-white">
@@ -69,73 +118,96 @@ const Blog = () => {
           </div>
         </div>
 
+        {/* Error State */}
+        {error && (
+          <div className="text-center py-12">
+            <div className="text-red-500 mb-4">
+              <p className="text-lg font-semibold">Error loading blog posts</p>
+              <p className="text-sm">{error}</p>
+            </div>
+            <button 
+              onClick={fetchBlogPosts}
+              className="px-4 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition-colors"
+            >
+              Try Again
+            </button>
+          </div>
+        )}
+
         {/* Blog Posts Grid */}
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {filteredPosts.map((post) => (
-            <article key={post.id} className="bg-white rounded-xl shadow-lg border border-gray-100 hover:shadow-xl transform hover:scale-105 transition-all duration-300 overflow-hidden">
-              {/* Featured Image */}
-              <div className="h-48 overflow-hidden">
-                <img 
-                  src={post.image} 
-                  alt={post.title}
-                  className="w-full h-full object-cover hover:scale-110 transition-transform duration-300"
-                />
-              </div>
-
-              {/* Content */}
-              <div className="p-6">
-                {/* Category & Date */}
-                <div className="flex items-center justify-between mb-3">
-                  <span className="px-3 py-1 bg-gradient-to-r from-purple-100 to-blue-100 text-purple-700 rounded-full text-xs font-medium">
-                    {post.category}
-                  </span>
-                  <div className="flex items-center text-gray-500 text-sm">
-                    <Calendar className="w-4 h-4 mr-1" />
-                    <span>{formatDate(post.date)}</span>
-                  </div>
+        {!error && posts.length > 0 && (
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {posts.map((post) => (
+              <article key={post.id} className="bg-white rounded-xl shadow-lg border border-gray-100 hover:shadow-xl transform hover:scale-105 transition-all duration-300 overflow-hidden">
+                {/* Featured Image */}
+                <div className="h-48 overflow-hidden">
+                  <img 
+                    src={post.image} 
+                    alt={post.title}
+                    className="w-full h-full object-cover hover:scale-110 transition-transform duration-300"
+                  />
                 </div>
 
-                {/* Title */}
-                <h3 className="text-xl font-bold text-gray-900 mb-3 line-clamp-2 hover:text-purple-600 transition-colors duration-200">
-                  {post.title}
-                </h3>
-
-                {/* Excerpt */}
-                <p className="text-gray-600 mb-4 line-clamp-3 leading-relaxed">
-                  {post.excerpt}
-                </p>
-
-                {/* Meta Info */}
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center text-gray-500 text-sm">
-                    <Clock className="w-4 h-4 mr-1" />
-                    <span>{post.readTime}</span>
+                {/* Content */}
+                <div className="p-6">
+                  {/* Category & Date */}
+                  <div className="flex items-center justify-between mb-3">
+                    <span className="px-3 py-1 bg-gradient-to-r from-purple-100 to-blue-100 text-purple-700 rounded-full text-xs font-medium">
+                      {post.category}
+                    </span>
+                    <div className="flex items-center text-gray-500 text-sm">
+                      <Calendar className="w-4 h-4 mr-1" />
+                      <span>{formatDate(post.createdAt || post.date)}</span>
+                    </div>
                   </div>
-                  
-                  <button className="inline-flex items-center text-purple-600 hover:text-purple-700 font-medium text-sm group">
-                    Read More
-                    <ChevronRight className="w-4 h-4 ml-1 group-hover:translate-x-1 transition-transform duration-200" />
-                  </button>
-                </div>
 
-                {/* Tags */}
-                <div className="mt-4 pt-4 border-t border-gray-100">
-                  <div className="flex flex-wrap gap-2">
-                    {post.tags.slice(0, 3).map((tag, tagIndex) => (
-                      <span key={tagIndex} className="inline-flex items-center text-xs text-gray-500 bg-gray-50 px-2 py-1 rounded">
-                        <Tag className="w-3 h-3 mr-1" />
-                        {tag}
-                      </span>
-                    ))}
+                  {/* Title */}
+                  <h3 className="text-xl font-bold text-gray-900 mb-3 line-clamp-2 hover:text-purple-600 transition-colors duration-200">
+                    {post.title}
+                  </h3>
+
+                  {/* Excerpt */}
+                  <p className="text-gray-600 mb-4 line-clamp-3 leading-relaxed">
+                    {post.excerpt}
+                  </p>
+
+                  {/* Meta Info */}
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center text-gray-500 text-sm">
+                      <Clock className="w-4 h-4 mr-1" />
+                      <span>{post.readTime}</span>
+                    </div>
+                    
+                    <button 
+                      onClick={() => handleReadMore(post)}
+                      className="inline-flex items-center text-purple-600 hover:text-purple-700 font-medium text-sm group"
+                    >
+                      Read More
+                      <ChevronRight className="w-4 h-4 ml-1 group-hover:translate-x-1 transition-transform duration-200" />
+                    </button>
                   </div>
+
+                  {/* Tags */}
+                  {post.tags && post.tags.length > 0 && (
+                    <div className="mt-4 pt-4 border-t border-gray-100">
+                      <div className="flex flex-wrap gap-2">
+                        {post.tags.slice(0, 3).map((tag, tagIndex) => (
+                          <span key={tagIndex} className="inline-flex items-center text-xs text-gray-500 bg-gray-50 px-2 py-1 rounded">
+                            <Tag className="w-3 h-3 mr-1" />
+                            {tag}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
-              </div>
-            </article>
-          ))}
-        </div>
+              </article>
+            ))}
+          </div>
+        )}
 
         {/* No Results */}
-        {filteredPosts.length === 0 && (
+        {!error && !loading && posts.length === 0 && (
           <div className="text-center py-12">
             <div className="text-gray-400 mb-4">
               <Search className="w-16 h-16 mx-auto" />

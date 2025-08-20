@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Mail, Phone, MapPin, Send, MessageSquare, Linkedin, Clock, CheckCircle } from 'lucide-react';
 import { useToast } from '../hooks/use-toast';
+import { contactAPI, analyticsAPI } from '../services/api';
 
 const Contact = () => {
   const [formData, setFormData] = useState({
@@ -23,27 +24,28 @@ const Contact = () => {
     e.preventDefault();
     setIsSubmitting(true);
 
-    // Simulate form submission (will be connected to backend later)
     try {
-      await new Promise(resolve => setTimeout(resolve, 1500)); // Mock API call
+      const response = await contactAPI.submit(formData);
       
-      toast({
-        title: "Message Sent Successfully!",
-        description: "Thank you for reaching out. I'll get back to you within 24 hours.",
-        duration: 5000,
-      });
+      if (response.success) {
+        toast({
+          title: "Message Sent Successfully!",
+          description: response.message,
+          duration: 5000,
+        });
 
-      // Reset form
-      setFormData({
-        name: '',
-        email: '',
-        subject: '',
-        message: ''
-      });
+        // Reset form
+        setFormData({
+          name: '',
+          email: '',
+          subject: '',
+          message: ''
+        });
+      }
     } catch (error) {
       toast({
         title: "Error Sending Message",
-        description: "Something went wrong. Please try again or contact me directly via email.",
+        description: error.message || "Something went wrong. Please try again or contact me directly via email.",
         variant: "destructive",
         duration: 5000,
       });

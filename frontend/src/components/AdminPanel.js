@@ -1,40 +1,146 @@
-import React, { useState } from 'react';
-import { Edit, Save, X, Plus, Trash2, Eye, Settings, BarChart } from 'lucide-react';
-import { mockData } from '../mock/mockData';
+import React, { useState, useEffect } from 'react';
+import { Edit, Save, X, Plus, Trash2, Eye, Settings, BarChart, Loader } from 'lucide-react';
 import { useToast } from '../hooks/use-toast';
+import { profileAPI, blogAPI, analyticsAPI, contactAPI } from '../services/api';
 
 const AdminPanel = ({ isOpen, onClose }) => {
   const [activeTab, setActiveTab] = useState('profile');
+  const [loading, setLoading] = useState(false);
   const [isEditing, setIsEditing] = useState({});
-  const [formData, setFormData] = useState({
-    name: 'Nelbert Tomicos',
-    tagline: 'General Virtual Assistant',
-    bio: "I'm a resourceful and detail-oriented General Virtual Assistant with a passion for helping businesses run smoothly and smartly.",
-    email: 'nelberttomicos@gmail.com',
-    phone: '+63 975-912-0840',
-    location: 'Mandaue City, Cebu, Philippines'
+  const [profileData, setProfileData] = useState({
+    name: '',
+    title: '',
+    bio: '',
+    email: '',
+    phone: '',
+    location: '',
+    linkedin: '',
+    profileImage: ''
   });
+  const [blogPosts, setBlogPosts] = useState([]);
+  const [analytics, setAnalytics] = useState({});
+  const [contacts, setContacts] = useState([]);
   const { toast } = useToast();
 
-  if (!isOpen) return null;
+  useEffect(() => {
+    if (isOpen) {
+      loadProfileData();
+      if (activeTab === 'blog') loadBlogPosts();
+      if (activeTab === 'analytics') loadAnalytics();
+      if (activeTab === 'contacts') loadContacts();
+    }
+  }, [isOpen, activeTab]);
 
-  const handleSave = (section) => {
-    setIsEditing({ ...isEditing, [section]: false });
-    toast({
-      title: "Changes Saved",
-      description: `${section} has been updated successfully.`,
-      duration: 3000,
-    });
+  const loadProfileData = async () => {
+    try {
+      setLoading(true);
+      const response = await profileAPI.get();
+      if (response.success && response.data) {
+        setProfileData(response.data);
+      }
+    } catch (error) {
+      toast({
+        title: "Error Loading Profile",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadBlogPosts = async () => {
+    try {
+      setLoading(true);
+      const response = await blogAPI.getAll({ published: true });
+      if (response.success && response.data) {
+        setBlogPosts(response.data.posts || []);
+      }
+    } catch (error) {
+      toast({
+        title: "Error Loading Blog Posts",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadAnalytics = async () => {
+    try {
+      setLoading(true);
+      const response = await analyticsAPI.get();
+      if (response.success && response.data) {
+        setAnalytics(response.data);
+      }
+    } catch (error) {
+      toast({
+        title: "Error Loading Analytics",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadContacts = async () => {
+    try {
+      setLoading(true);
+      const response = await contactAPI.getAll();
+      if (response.success && response.data) {
+        setContacts(response.data.contacts || []);
+      }
+    } catch (error) {
+      toast({
+        title: "Error Loading Contacts",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSaveProfile = async () => {
+    try {
+      setLoading(true);
+      const response = await profileAPI.update(profileData);
+      if (response.success) {
+        setIsEditing({ ...isEditing, basic: false });
+        toast({
+          title: "Profile Updated",
+          description: "Your profile has been updated successfully.",
+          duration: 3000,
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error Updating Profile",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleCancel = (section) => {
     setIsEditing({ ...isEditing, [section]: false });
-    // Reset form data here if needed
+    loadProfileData(); // Reset to original data
   };
+
+  const handleInputChange = (field, value) => {
+    setProfileData({ ...profileData, [field]: value });
+  };
+
+  if (!isOpen) return null;
 
   const tabs = [
     { id: 'profile', name: 'Profile', icon: Edit },
     { id: 'blog', name: 'Blog Posts', icon: Plus },
+    { id: 'contacts', name: 'Contacts', icon: Eye },
     { id: 'analytics', name: 'Analytics', icon: BarChart },
     { id: 'settings', name: 'Settings', icon: Settings }
   ];
@@ -79,8 +185,15 @@ const AdminPanel = ({ isOpen, onClose }) => {
           {/* Main Content */}
           <div className="flex-1 overflow-y-auto">
             <div className="p-6">
+              {loading && (
+                <div className="flex items-center justify-center py-8">
+                  <Loader className="w-8 h-8 animate-spin text-purple-600 mr-3" />
+                  <span className="text-gray-600">Loading...</span>
+                </div>
+              )}
+
               {/* Profile Tab */}
-              {activeTab === 'profile' && (
+              {activeTab === 'profile' && !loading && (
                 <div className="space-y-6">
                   <h3 className="text-xl font-semibold text-gray-900">Profile Information</h3>
                   
@@ -99,7 +212,7 @@ const AdminPanel = ({ isOpen, onClose }) => {
                       ) : (
                         <div className="flex space-x-2">
                           <button
-                            onClick={() => handleSave('basic')}
+                            onClick={handleSaveProfile}
                             className="flex items-center px-3 py-1 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition-colors duration-200"
                           >
                             <Save className="w-4 h-4 mr-1" />
@@ -124,12 +237,12 @@ const AdminPanel = ({ isOpen, onClose }) => {
                         {isEditing.basic ? (
                           <input
                             type="text"
-                            value={formData.name}
-                            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                            value={profileData.name}
+                            onChange={(e) => handleInputChange('name', e.target.value)}
                             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
                           />
                         ) : (
-                          <p className="text-gray-900 py-2">{formData.name}</p>
+                          <p className="text-gray-900 py-2">{profileData.name}</p>
                         )}
                       </div>
 
@@ -140,12 +253,12 @@ const AdminPanel = ({ isOpen, onClose }) => {
                         {isEditing.basic ? (
                           <input
                             type="text"
-                            value={formData.tagline}
-                            onChange={(e) => setFormData({ ...formData, tagline: e.target.value })}
+                            value={profileData.title}
+                            onChange={(e) => handleInputChange('title', e.target.value)}
                             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
                           />
                         ) : (
-                          <p className="text-gray-900 py-2">{formData.tagline}</p>
+                          <p className="text-gray-900 py-2">{profileData.title}</p>
                         )}
                       </div>
 
@@ -156,12 +269,12 @@ const AdminPanel = ({ isOpen, onClose }) => {
                         {isEditing.basic ? (
                           <input
                             type="email"
-                            value={formData.email}
-                            onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                            value={profileData.email}
+                            onChange={(e) => handleInputChange('email', e.target.value)}
                             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
                           />
                         ) : (
-                          <p className="text-gray-900 py-2">{formData.email}</p>
+                          <p className="text-gray-900 py-2">{profileData.email}</p>
                         )}
                       </div>
 
@@ -172,12 +285,12 @@ const AdminPanel = ({ isOpen, onClose }) => {
                         {isEditing.basic ? (
                           <input
                             type="tel"
-                            value={formData.phone}
-                            onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                            value={profileData.phone}
+                            onChange={(e) => handleInputChange('phone', e.target.value)}
                             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
                           />
                         ) : (
-                          <p className="text-gray-900 py-2">{formData.phone}</p>
+                          <p className="text-gray-900 py-2">{profileData.phone}</p>
                         )}
                       </div>
 
@@ -187,13 +300,13 @@ const AdminPanel = ({ isOpen, onClose }) => {
                         </label>
                         {isEditing.basic ? (
                           <textarea
-                            value={formData.bio}
-                            onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
+                            value={profileData.bio}
+                            onChange={(e) => handleInputChange('bio', e.target.value)}
                             rows={3}
                             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
                           />
                         ) : (
-                          <p className="text-gray-900 py-2">{formData.bio}</p>
+                          <p className="text-gray-900 py-2">{profileData.bio}</p>
                         )}
                       </div>
                     </div>
@@ -205,7 +318,7 @@ const AdminPanel = ({ isOpen, onClose }) => {
                     <div className="flex items-center space-x-4">
                       <div className="w-20 h-20 rounded-full overflow-hidden border-4 border-purple-200">
                         <img 
-                          src="https://customer-assets.emergentagent.com/job_0514d4c0-8919-46e5-8284-36a12b4ff7cf/artifacts/aieijo2h_Profile%20Photo.jpeg"
+                          src={profileData.profileImage}
                           alt="Profile"
                           className="w-full h-full object-cover"
                         />
@@ -224,7 +337,7 @@ const AdminPanel = ({ isOpen, onClose }) => {
               )}
 
               {/* Blog Tab */}
-              {activeTab === 'blog' && (
+              {activeTab === 'blog' && !loading && (
                 <div className="space-y-6">
                   <div className="flex items-center justify-between">
                     <h3 className="text-xl font-semibold text-gray-900">Blog Management</h3>
@@ -235,7 +348,7 @@ const AdminPanel = ({ isOpen, onClose }) => {
                   </div>
 
                   <div className="space-y-4">
-                    {mockData.blogPosts.map((post) => (
+                    {blogPosts.map((post) => (
                       <div key={post.id} className="bg-white rounded-lg border border-gray-200 p-6 hover:shadow-lg transition-shadow duration-200">
                         <div className="flex items-start justify-between">
                           <div className="flex-1">
@@ -248,7 +361,7 @@ const AdminPanel = ({ isOpen, onClose }) => {
                             <div className="flex items-center space-x-4 text-sm text-gray-500">
                               <span>{post.category}</span>
                               <span>•</span>
-                              <span>{post.date}</span>
+                              <span>{new Date(post.createdAt).toLocaleDateString()}</span>
                               <span>•</span>
                               <span>{post.readTime}</span>
                             </div>
@@ -271,63 +384,83 @@ const AdminPanel = ({ isOpen, onClose }) => {
                 </div>
               )}
 
+              {/* Contacts Tab */}
+              {activeTab === 'contacts' && !loading && (
+                <div className="space-y-6">
+                  <h3 className="text-xl font-semibold text-gray-900">Contact Submissions</h3>
+                  
+                  <div className="space-y-4">
+                    {contacts.map((contact) => (
+                      <div key={contact.id} className="bg-white rounded-lg border border-gray-200 p-6">
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <div className="flex items-center space-x-4 mb-2">
+                              <h4 className="text-lg font-medium text-gray-900">
+                                {contact.name}
+                              </h4>
+                              <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                contact.status === 'new' 
+                                  ? 'bg-green-100 text-green-700'
+                                  : contact.status === 'read'
+                                  ? 'bg-blue-100 text-blue-700'
+                                  : 'bg-gray-100 text-gray-700'
+                              }`}>
+                                {contact.status}
+                              </span>
+                            </div>
+                            <p className="text-gray-600 mb-2">{contact.email}</p>
+                            <p className="text-gray-900 font-medium mb-2">{contact.subject}</p>
+                            <p className="text-gray-600 mb-3">{contact.message}</p>
+                            <p className="text-sm text-gray-500">
+                              Received: {new Date(contact.createdAt).toLocaleDateString()}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {/* Analytics Tab */}
-              {activeTab === 'analytics' && (
+              {activeTab === 'analytics' && !loading && (
                 <div className="space-y-6">
                   <h3 className="text-xl font-semibold text-gray-900">Analytics Overview</h3>
                   
                   <div className="grid md:grid-cols-4 gap-6">
                     <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg p-6 border border-purple-200">
                       <div className="text-2xl font-bold text-purple-700 mb-2">
-                        {mockData.analytics.websiteViews}
+                        {analytics.websiteViews || 0}
                       </div>
                       <div className="text-purple-600">Website Views</div>
                     </div>
 
                     <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg p-6 border border-blue-200">
                       <div className="text-2xl font-bold text-blue-700 mb-2">
-                        {mockData.analytics.blogViews}
+                        {analytics.blogViews || 0}
                       </div>
                       <div className="text-blue-600">Blog Views</div>
                     </div>
 
                     <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-lg p-6 border border-green-200">
                       <div className="text-2xl font-bold text-green-700 mb-2">
-                        {mockData.analytics.contactInquiries}
+                        {analytics.contactInquiries || 0}
                       </div>
                       <div className="text-green-600">Contact Inquiries</div>
                     </div>
 
                     <div className="bg-gradient-to-br from-indigo-50 to-indigo-100 rounded-lg p-6 border border-indigo-200">
                       <div className="text-2xl font-bold text-indigo-700 mb-2">
-                        {mockData.analytics.socialMediaFollowers}
+                        {analytics.socialMediaFollowers || 0}
                       </div>
                       <div className="text-indigo-600">Social Followers</div>
-                    </div>
-                  </div>
-
-                  <div className="bg-white rounded-lg border border-gray-200 p-6">
-                    <h4 className="text-lg font-medium text-gray-900 mb-4">Recent Activity</h4>
-                    <div className="space-y-3">
-                      <div className="flex items-center justify-between py-2">
-                        <span className="text-gray-700">New contact form submission</span>
-                        <span className="text-sm text-gray-500">2 hours ago</span>
-                      </div>
-                      <div className="flex items-center justify-between py-2">
-                        <span className="text-gray-700">Blog post "5 Essential Tools" published</span>
-                        <span className="text-sm text-gray-500">1 day ago</span>
-                      </div>
-                      <div className="flex items-center justify-between py-2">
-                        <span className="text-gray-700">Profile information updated</span>
-                        <span className="text-sm text-gray-500">3 days ago</span>
-                      </div>
                     </div>
                   </div>
                 </div>
               )}
 
               {/* Settings Tab */}
-              {activeTab === 'settings' && (
+              {activeTab === 'settings' && !loading && (
                 <div className="space-y-6">
                   <h3 className="text-xl font-semibold text-gray-900">Settings</h3>
                   
