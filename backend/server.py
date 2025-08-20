@@ -5,60 +5,46 @@ from motor.motor_asyncio import AsyncIOMotorClient
 import os
 import logging
 from pathlib import Path
-from pydantic import BaseModel, Field
-from typing import List
-import uuid
-from datetime import datetime
 
+# Import routes
+from routes import profile, contact, blog, analytics
+
+# Import database initialization
+from database import init_database, close_database
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
 
-# MongoDB connection
-mongo_url = os.environ['MONGO_URL']
-client = AsyncIOMotorClient(mongo_url)
-db = client[os.environ['DB_NAME']]
-
-# Create the main app without a prefix
-app = FastAPI()
+# Create the main app
+app = FastAPI(title="Nelbert Tomicos Portfolio API", version="1.0.0")
 
 # Create a router with the /api prefix
 api_router = APIRouter(prefix="/api")
 
-
-# Define Models
-class StatusCheck(BaseModel):
-    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
-    client_name: str
-    timestamp: datetime = Field(default_factory=datetime.utcnow)
-
-class StatusCheckCreate(BaseModel):
-    client_name: str
-
-# Add your routes to the router instead of directly to app
+# Original hello world endpoint
 @api_router.get("/")
 async def root():
-    return {"message": "Hello World"}
+    return {"message": "Nelbert Tomicos Portfolio API - Virtual Assistant Services"}
 
-@api_router.post("/status", response_model=StatusCheck)
-async def create_status_check(input: StatusCheckCreate):
-    status_dict = input.dict()
-    status_obj = StatusCheck(**status_dict)
-    _ = await db.status_checks.insert_one(status_obj.dict())
-    return status_obj
+# Health check endpoint
+@api_router.get("/health")
+async def health_check():
+    return {"status": "healthy", "message": "API is running successfully"}
 
-@api_router.get("/status", response_model=List[StatusCheck])
-async def get_status_checks():
-    status_checks = await db.status_checks.find().to_list(1000)
-    return [StatusCheck(**status_check) for status_check in status_checks]
+# Include all route modules
+app.include_router(profile.router)
+app.include_router(contact.router)
+app.include_router(blog.router)
+app.include_router(analytics.router)
 
-# Include the router in the main app
+# Include the base API router
 app.include_router(api_router)
 
+# CORS middleware
 app.add_middleware(
     CORSMiddleware,
     allow_credentials=True,
-    allow_origins=os.environ.get('CORS_ORIGINS', '*').split(','),
+    allow_origins=["*"],
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -70,6 +56,32 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+@app.on_event("startup")
+async def startup_db():
+    """Initialize database on startup"""
+    try:
+        await init_database()
+        logger.info("✅ Database initialized successfully")
+        logger.info("✅ Portfolio API started successfully")
+        logger.info("📁 Available endpoints:")
+        logger.info("  - GET /api/ - API root")
+        logger.info("  - GET /api/health - Health check")
+        logger.info("  - GET /api/profile - Get profile")
+        logger.info("  - PUT /api/profile - Update profile")
+        logger.info("  - POST /api/contact - Submit contact form")
+        logger.info("  - GET /api/contact - Get contacts (admin)")
+        logger.info("  - GET /api/blog - Get blog posts")
+        logger.info("  - POST /api/blog - Create blog post")
+        logger.info("  - GET /api/analytics - Get analytics")
+        logger.info("  - POST /api/analytics/view - Track page view")
+    except Exception as e:
+        logger.error(f"❌ Database initialization failed: {e}")
+
 @app.on_event("shutdown")
-async def shutdown_db_client():
-    client.close()
+async def shutdown_db():
+    """Close database connection on shutdown"""
+    try:
+        await close_database()
+        logger.info("✅ Database connection closed")
+    except Exception as e:
+        logger.error(f"❌ Error closing database: {e}")
