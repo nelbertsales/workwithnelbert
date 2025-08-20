@@ -1,8 +1,22 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Download, Mail, Phone, MapPin, Linkedin } from 'lucide-react';
+import { analyticsAPI } from '../services/api';
 
 const Hero = () => {
   const profileImage = "https://customer-assets.emergentagent.com/job_0514d4c0-8919-46e5-8284-36a12b4ff7cf/artifacts/aieijo2h_Profile%20Photo.jpeg";
+
+  useEffect(() => {
+    // Track website view when component mounts
+    const trackView = async () => {
+      try {
+        await analyticsAPI.trackView('website');
+      } catch (error) {
+        console.log('Analytics tracking failed:', error);
+      }
+    };
+
+    trackView();
+  }, []);
 
   return (
     <section id="home" className="relative min-h-screen flex items-center justify-center overflow-hidden">
