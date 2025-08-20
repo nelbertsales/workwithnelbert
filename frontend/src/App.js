@@ -1,38 +1,62 @@
-import { useEffect } from "react";
-import "./App.css";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-import axios from "axios";
+import React, { useState } from 'react';
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { Toaster } from './components/ui/toaster';
+import { Settings } from 'lucide-react';
 
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
-const API = `${BACKEND_URL}/api`;
+// Components
+import Header from './components/Header';
+import Hero from './components/Hero';
+import About from './components/About';
+import Skills from './components/Skills';
+import Experience from './components/Experience';
+import Education from './components/Education';
+import Blog from './components/Blog';
+import References from './components/References';
+import Contact from './components/Contact';
+import Footer from './components/Footer';
+import AdminPanel from './components/AdminPanel';
 
-const Home = () => {
-  const helloWorldApi = async () => {
-    try {
-      const response = await axios.get(`${API}/`);
-      console.log(response.data.message);
-    } catch (e) {
-      console.error(e, `errored out requesting / api`);
-    }
-  };
+// Styles
+import './App.css';
 
-  useEffect(() => {
-    helloWorldApi();
-  }, []);
+const HomePage = () => {
+  const [isAdminOpen, setIsAdminOpen] = useState(false);
 
   return (
-    <div>
-      <header className="App-header">
-        <a
-          className="App-link"
-          href="https://emergent.sh"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <img src="https://avatars.githubusercontent.com/in/1201222?s=120&u=2686cf91179bbafbc7a71bfbc43004cf9ae1acea&v=4" />
-        </a>
-        <p className="mt-5">Building something incredible ~!</p>
-      </header>
+    <div className="min-h-screen bg-white">
+      <Header />
+      
+      {/* Admin Panel Toggle Button */}
+      <button
+        onClick={() => setIsAdminOpen(true)}
+        className="fixed top-20 right-4 z-40 p-3 bg-gradient-to-r from-purple-500 to-blue-500 text-white rounded-full shadow-lg hover:from-purple-600 hover:to-blue-600 transform hover:scale-110 transition-all duration-300 hidden md:flex items-center"
+        title="Content Management"
+      >
+        <Settings className="w-5 h-5" />
+      </button>
+
+      {/* Main Content */}
+      <main className="relative">
+        <Hero />
+        <About />
+        <Skills />
+        <Experience />
+        <Education />
+        <Blog />
+        <References />
+        <Contact />
+      </main>
+
+      <Footer />
+
+      {/* Admin Panel */}
+      <AdminPanel 
+        isOpen={isAdminOpen} 
+        onClose={() => setIsAdminOpen(false)} 
+      />
+
+      {/* Toast Notifications */}
+      <Toaster />
     </div>
   );
 };
@@ -42,9 +66,7 @@ function App() {
     <div className="App">
       <BrowserRouter>
         <Routes>
-          <Route path="/" element={<Home />}>
-            <Route index element={<Home />} />
-          </Route>
+          <Route path="/" element={<HomePage />} />
         </Routes>
       </BrowserRouter>
     </div>
